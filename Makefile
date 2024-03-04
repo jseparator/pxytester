@@ -1,6 +1,6 @@
 # make
 build:
-	go build -o bin/pxy *.go
+	go build -o bin/pxy
 
 run:
 	$(MAKE) build

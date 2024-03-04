@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -20,17 +21,21 @@ var transport = &http.Transport{
 		d := req.Context().Value("executor").(*Executor)
 		return d.Proxy, nil
 	},
-	//OnProxyConnectResponse: func(ctx context.Context, pxy *url.URL, connReq *http.Request, connRes *http.Response) error {
-	//	var buf bytes.Buffer
-	//	buf.Grow(2048)
-	//	for k, vs := range connRes.Header {
-	//		for _, v := range vs {
-	//			_, _ = fmt.Fprintf(&buf, "%s: %s\n", k, v)
-	//		}
-	//	}
-	//	log.Println("%v, hs: \n%s", pxy, buf.String())
-	//	return nil
-	//},
+	OnProxyConnectResponse: func(ctx context.Context, pxy *url.URL, connReq *http.Request, connRes *http.Response) error {
+		if connRes.StatusCode == http.StatusOK {
+			return nil
+		}
+		var buf bytes.Buffer
+		buf.Grow(1024)
+		_, _ = fmt.Fprintf(&buf, "%s %s\n", connRes.Proto, connRes.Status)
+		for k, vs := range connRes.Header {
+			for _, v := range vs {
+				_, _ = fmt.Fprintf(&buf, "%s: %s\n", k, v)
+			}
+		}
+		log.Printf("%v, hs: \n%s\n", pxy, buf.String())
+		return nil
+	},
 }
 
 func getProxy(gw, userPtr, pwdPtr *string, country string, session int) *url.URL {
